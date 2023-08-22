@@ -16,7 +16,7 @@ class FavoriteTest extends TestCase
         $post = Post::factory()->create();
 
         $this->postJson(route('favorites.store', ['post' => $post]))
-            ->assertForbidden();
+            ->assertStatus(401);
     }
 
     public function test_a_user_can_favorite_a_post()

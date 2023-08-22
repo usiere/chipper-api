@@ -18,7 +18,7 @@ class PostTest extends TestCase
             'body' => 'This is a test post.',
         ]);
 
-        $response->assertForbidden();
+        $response->assertStatus(401);
     }
 
     public function test_a_user_can_create_a_post()
@@ -80,7 +80,7 @@ class PostTest extends TestCase
         ]);
     }
 
-    public function test_a_user_can_update_a_post_by_other_user()
+    public function test_a_user_can_not_update_a_post_by_other_user()
     {
         $john = User::factory()->create(['name' => 'John']);
         $jack = User::factory()->create(['name' => 'Jack']);

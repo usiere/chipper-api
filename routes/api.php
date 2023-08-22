@@ -20,16 +20,15 @@ use App\Http\Controllers\FavoriteController;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
-
-Route::get('session', SessionController::class)->name('session');
 Route::post('register', RegisterController::class)->name('register');
 Route::post('login', LoginController::class)->name('login');
-Route::post('logout', LogoutController::class)->name('logout');
-Route::apiResource('posts', PostController::class);
+Route::get('posts', [PostController::class, 'index'])->name('posts.index');
 
-Route::get('favorites', [FavoriteController::class, 'index'])->name('favorites.index');
-Route::post('posts/{post}/favorite', [FavoriteController::class, 'store'])->name('favorites.store');
-Route::delete('posts/{post}/favorite', [FavoriteController::class, 'destroy'])->name('favorites.destroy');
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('session', SessionController::class)->name('session');
+    Route::post('logout', LogoutController::class)->name('logout');
+    Route::apiResource('posts', PostController::class);
+    Route::get('favorites', [FavoriteController::class, 'index'])->name('favorites.index');
+    Route::post('posts/{post}/favorite', [FavoriteController::class, 'store'])->name('favorites.store');
+    Route::delete('posts/{post}/favorite', [FavoriteController::class, 'destroy'])->name('favorites.destroy');
+});
