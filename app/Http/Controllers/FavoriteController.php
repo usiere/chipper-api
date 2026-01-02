@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Requests\CreateFavoriteRequest;
 use Illuminate\Http\Response;
+use App\Http\Resources\PostResource;
+use App\Http\Resources\UserResource;
 
 /**
  * @group Favorites
@@ -17,8 +19,24 @@ class FavoriteController extends Controller
 {
     public function index(Request $request)
     {
-        $favorites = $request->user()->favorites;
-        return FavoriteResource::collection($favorites);
+        $favorites = $request->user()->favorites()->with('favoritable')->get();
+
+        // Get post favorites with user relationship loaded
+        $postFavorites = $favorites->where('favoritable_type', Post::class);
+        $postIds = $postFavorites->pluck('favoritable_id');
+        $posts = Post::with('user')->whereIn('id', $postIds)->get();
+
+        // Get user favorites
+        $userFavorites = $favorites->where('favoritable_type', User::class);
+        $userIds = $userFavorites->pluck('favoritable_id');
+        $users = User::whereIn('id', $userIds)->get();
+
+        return response()->json([
+            'data' => [
+                'posts' => PostResource::collection($posts),
+                'users' => UserResource::collection($users),
+            ]
+        ]);
     }
 
     public function store(CreateFavoriteRequest $request, Post $post)

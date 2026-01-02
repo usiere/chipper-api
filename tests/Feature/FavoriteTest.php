@@ -164,4 +164,75 @@ class FavoriteTest extends TestCase
             ->assertStatus(404)
             ->assertJson(['message' => 'User was not in favorites']);
     }
+
+    public function test_favorites_index_returns_structured_response_with_posts_and_users()
+    {
+        $user = User::factory()->create();
+        $post1 = Post::factory()->create();
+        $post2 = Post::factory()->create();
+        $author1 = User::factory()->create();
+        $author2 = User::factory()->create();
+
+        // Favorite some posts and users
+        $this->actingAs($user)
+            ->postJson(route('favorites.store', ['post' => $post1]));
+        $this->actingAs($user)
+            ->postJson(route('favorites.store', ['post' => $post2]));
+        $this->actingAs($user)
+            ->postJson(route('users.favorite', ['user' => $author1]));
+        $this->actingAs($user)
+            ->postJson(route('users.favorite', ['user' => $author2]));
+
+        $response = $this->actingAs($user)
+            ->getJson(route('favorites.index'))
+            ->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    'posts' => [
+                        '*' => [
+                            'id',
+                            'title',
+                            'body',
+                            'user' => [
+                                'id',
+                                'name',
+                                'email'
+                            ]
+                        ]
+                    ],
+                    'users' => [
+                        '*' => [
+                            'id',
+                            'name',
+                            'email'
+                        ]
+                    ]
+                ]
+            ]);
+
+        $data = $response->json('data');
+
+        // Check that we have the correct number of items
+        $this->assertCount(2, $data['posts']);
+        $this->assertCount(2, $data['users']);
+
+        // Check that posts include user information
+        $this->assertArrayHasKey('user', $data['posts'][0]);
+        $this->assertArrayHasKey('user', $data['posts'][1]);
+    }
+
+    public function test_favorites_index_returns_empty_arrays_when_no_favorites()
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->getJson(route('favorites.index'))
+            ->assertOk()
+            ->assertJson([
+                'data' => [
+                    'posts' => [],
+                    'users' => []
+                ]
+            ]);
+    }
 }

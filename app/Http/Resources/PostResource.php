@@ -13,7 +13,7 @@ class PostResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'body' => $this->body,
-            'user' => new UserResource($this->user),
+            'user' => new UserResource($this->whenLoaded('user')),
         ];
     }
 }
