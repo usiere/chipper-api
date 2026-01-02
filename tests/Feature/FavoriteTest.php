@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Post;
+use App\Notifications\NewPostFromFavoriteUser;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class FavoriteTest extends TestCase
@@ -234,5 +236,73 @@ class FavoriteTest extends TestCase
                     'users' => []
                 ]
             ]);
+    }
+
+    public function test_followers_are_notified_when_favorited_user_creates_post()
+    {
+        Notification::fake();
+
+        // Create users
+        $author = User::factory()->create();
+        $follower = User::factory()->create();
+
+        // Follower favorites author
+        $follower->favorites()->create([
+            'favoritable_id' => $author->id,
+            'favoritable_type' => User::class,
+        ]);
+
+        // Author creates post
+        $this->actingAs($author)->postJson('/api/posts', [
+            'title' => 'Test Post',
+            'body' => 'Test body content',
+        ]);
+
+        // Assert notification was sent
+        Notification::assertSentTo($follower, NewPostFromFavoriteUser::class);
+    }
+
+    public function test_non_followers_are_not_notified_when_user_creates_post()
+    {
+        Notification::fake();
+
+        $author = User::factory()->create();
+        $nonFollower = User::factory()->create();
+
+        $this->actingAs($author)->postJson('/api/posts', [
+            'title' => 'Test Post',
+            'body' => 'Test body content',
+        ]);
+
+        Notification::assertNotSentTo($nonFollower, NewPostFromFavoriteUser::class);
+    }
+
+    public function test_multiple_followers_are_notified_when_favorited_user_creates_post()
+    {
+        Notification::fake();
+
+        $author = User::factory()->create();
+        $follower1 = User::factory()->create();
+        $follower2 = User::factory()->create();
+
+        // Both users favorite the author
+        $follower1->favorites()->create([
+            'favoritable_id' => $author->id,
+            'favoritable_type' => User::class,
+        ]);
+        $follower2->favorites()->create([
+            'favoritable_id' => $author->id,
+            'favoritable_type' => User::class,
+        ]);
+
+        // Author creates post
+        $this->actingAs($author)->postJson('/api/posts', [
+            'title' => 'Test Post',
+            'body' => 'Test body content',
+        ]);
+
+        // Both followers should be notified
+        Notification::assertSentTo($follower1, NewPostFromFavoriteUser::class);
+        Notification::assertSentTo($follower2, NewPostFromFavoriteUser::class);
     }
 }
